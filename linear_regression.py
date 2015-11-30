@@ -6,16 +6,24 @@ DATA STRUCTURES
 """
 
 class Matrix:
-    def __init__(self):
+    def __init__(self, numAttributes):
+        assert numAttributes > 0, "Invalid number of attributes - " + numAttributes
         self._array = []
+        self._numAttributes = numAttributes
 
-    def __init__(self, array): #Should only be used to calculate determinants
-        self._array = array;
+    @staticmethod
+    def createFromArray(array): #Should only be used to calculate determinants
+        assert len(array) > 0, "Creating Matrix from empty array"
+        numAttributes = len(array[0])
+        matrix = Matrix(numAttributes)
+        matrix._array = array;
+        return matrix
 
-    def addInput(input):
-        assert len(self._array) == 0 or len(input) == len(self._array[0]), "Added input of different sizes"
-        #Inserts the vector into the array
-        self._array.append(input.getVector())
+
+    def addInput(self, params):
+        assert len(params) == self._numAttributes, "Input has wrong number of attributes"
+        #Inserts the vector into the array as a row
+        self._array.append(params)
 
     def getArray(self):
         return self._array
@@ -28,28 +36,29 @@ class Matrix:
         for i in range(len(array)):
             for j in range(len(array[i])):
                 transpose[j][i] = array[i][j]
-        return Matrix(transpose)
+        return Matrix.createFromArray(transpose)
 
     def getInverse(self): #Using the Adjoint method
         det = self.getDeterminant()
-        assert det != 0, "Finding the determinant of a non-invertible matrix!"
+        assert det != 0, "Cannot invert a non-invertable matrix"
         adjunct = self.getCofactorMatrix().getTranspose()
         adjunct.scalarMultiply(1.0 / det)
         return adjunct
 
+
     def getCofactorMatrix(self):
-        if len(self._array) == 0:
-            return Matrix()
         cof = [[0 for x in range(len(self._array[0]))] for x in range(len(self._array))]
         for i in range(len(self._array)):
             for j in range(len(self._array[i])):
                 cof[i][j] = Matrix.getCofactor(self._array, i, j)
-        return Matrix(cof)
+        return Matrix.createFromArray(cof)
 
     def getDeterminant(self):
         assert len(self._array) > 0, "Attempt to find determinant of an Empty Matrix"
-        assert len(self._array) == len(self._array[0]), "Not an n x n Matrix"
-
+        assert len(self._array) == len(self._array[0]), "Not an n x n Matrix: " + str(self._array)
+        if len(self._array) == 1: #Base Case: 1x1 matrix
+            det = self._array[0][0]
+            return det
         if len(self._array) == 2: #Base Case: 2x2 matrix
             det = self._array[0][0] * self._array[1][1] - self._array[0][1] * self._array[1][0]
             return det
@@ -72,7 +81,7 @@ class Matrix:
         minor.pop(i) #Deletes row
         for row in minor: #Deletes column
             row.pop(j)
-        minorMatrix = Matrix(minor)
+        minorMatrix = Matrix.createFromArray(minor)
         sign = (-1) ** (i + j)
         #Cofactor is the minor matrix's determinant
         cofactor = sign * minorMatrix.getDeterminant()
@@ -86,7 +95,8 @@ class Matrix:
     @staticmethod
     def multiply(a, b):
         assert len(a._array) > 0 and len(b._array) > 0, "Cannot multiply empty matrices"
-        assert len(a._array) == len(b._array) and len(a._array[0]) == len(b._array[0]), "Cannot multiply matrices of different size"
+        assert len(a._array[0]) == len(b._array), "Cannot multiply matrices of different size: " + \
+            str(a._array) + " and " + str(b._array)
         product = []
         rowsA = a.getRowVectors()
         columnsB = b.getColumnVectors()
@@ -94,29 +104,32 @@ class Matrix:
             productRow = []
             for column in columnsB:
                 dot = Vector.dotProduct(row, column)
-                print "Dot Product of ", row._array, " and ", column._array, " = ", dot
                 productRow.append(dot)
             product.append(productRow)
-        return product
+        return Matrix.createFromArray(product)
 
-    def predict(self, input):
+    def predict(self, params):
         return DataPoint([])
 
     def getArray(self):
         return copy.deepcopy(self._array)
 
     def getColumnVectors(self):
+        columns = self.getColumns()
+        columnVectors = []
+        for column in columns:
+            columnVectors.append(Vector(column))
+        return columnVectors
+
+    def getColumns(self):
         if len(self._array) == 0:
             return
         columns = [[] for x in range(len(self._array[0]))]
 
         for row in self._array:
-            for i in range(len(self._array)):
+            for i in range(len(self._array[0])):
                 columns[i].append(row[i])
-        columnVectors = []
-        for column in columns:
-            columnVectors.append(Vector(column))
-        return columnVectors
+        return columns
 
     def getRowVectors(self):
         rowVectors = []
@@ -124,24 +137,14 @@ class Matrix:
             rowVectors.append(Vector(copy.deepcopy(row)))
         return rowVectors
 
-class DataPoint:
-    def __init__(self, map):
-        self._map = map
-        self._vector = map.values()
-
-    def getValue(self, name):
-        return self._map[name]
-
-    def getVector(self):
-        return self._vector
-
 class Vector:
     def __init__(self, array):
         self._array = array
 
     @staticmethod
     def dotProduct(a, b):
-        assert len(a._array) == len(b._array), "Cannot dot vectors of different size"
+        assert len(a._array) == len(b._array), "Cannot dot vectors of different size: " + \
+        str(a._array) + " * " + str(b._array)
         product = 0
         for i in range(len(a._array)):
             product += a._array[i] * b._array[i]
@@ -150,8 +153,26 @@ class Vector:
 """
 MACHINE LEARNING ALGORITHM
 """
-def linearRegression():
-    return
+class LinearRegression:
+    def __init__(self, numParams):
+        self._matrix = Matrix(numParams)
+        self._targetValues = []
+        self._paramsMatrix = None #Memoization
+
+    def train(self, params, target):
+        self._matrix.addInput(params)
+        self._targetValues.append(target)
+        self._paramsMatrix = None
+
+    def predict(self, params):
+        if self._paramsMatrix is None:
+            self._paramsMatrix = self._matrix
+            self._paramsMatrix = Matrix.multiply(self._paramsMatrix.getTranspose(), self._paramsMatrix)
+            self._paramsMatrix = Matrix.multiply(self._paramsMatrix.getInverse(), self._matrix.getTranspose())
+            self._paramsMatrix = Matrix.multiply(self._paramsMatrix, Matrix.createFromArray([self._targetValues]).getTranspose())
+        paramsVector = Vector(self._paramsMatrix.getTranspose().getArray()[0])
+        result = Vector.dotProduct(paramsVector, Vector(params))
+        return result
 
 """
 UNIT TESTING
@@ -161,14 +182,14 @@ def assertAttribute(name, attributeName, expectedVal, actualVal):
         attributeName + " = " + str(actualVal) + " instead of " + str(expectedVal)
 
 def testMatrix(name, array, determinant, transpose, cofactor, inverse, multiplyWith, product):
-    matrix = Matrix(array)
-    multiplyMatrix = Matrix(multiplyWith)
+    matrix = Matrix.createFromArray(array)
+    multiplyMatrix = Matrix.createFromArray(multiplyWith)
 
     determinantTest = matrix.getDeterminant()
     transposeTest = matrix.getTranspose().getArray()
     cofactorTest = matrix.getCofactorMatrix().getArray()
     inverseTest = matrix.getInverse().getArray()
-    productTest = Matrix.multiply(matrix, multiplyMatrix)
+    productTest = Matrix.multiply(matrix, multiplyMatrix).getArray()
 
     assertAttribute(name, "transpose", transpose, transposeTest)
     assertAttribute(name, "determinant", determinant, determinantTest)
@@ -238,9 +259,9 @@ def unitTestMatrix(): #Unit tests the Matrix class
         [3, 3, 3],
         [2, 4, 6]],
         #product
-        [[18, 24, 30],
-        [35, 47, 59],
-        [58, 78, 98]]
+        [[84, 90, 96],
+        [123, 135, 147],
+        [212, 232, 252]]
     ])
 
     #------RUN TEST CASES----------
@@ -254,3 +275,21 @@ EXECUTABLE CODE
 #Start with the unit tests
 unitTestMatrix()
 print "Passed all Matrix unit tests"
+
+#Sets up regression
+regression = LinearRegression(3)
+
+data1 = [0.01, 0.02, 0.0]
+data2 = [1.03, 1.01, 1.0]
+data3 = [2.04, 2.03, 2.0]
+data4 = [3.1, 3.09, 3.0]
+data5 = [4.03, 4.02, 4.0]
+
+regression.train(data1, 0.0)
+regression.train(data2, 1.0)
+regression.train(data3, 2.0)
+regression.train(data4, 3.0)
+
+result = regression.predict(data5)
+
+print "Prediction result: ", result
