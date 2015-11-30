@@ -1,82 +1,165 @@
 
 import copy
 
+"""
+DATA STRUCTURES
+"""
+
 class Matrix:
     def __init__(self):
-        self.values = []
-        self.array = []
+        self._values = []
+        self._array = []
 
     def __init__(self, array): #Should only be used to calculate determinants
-        self.array = array;
-        self.values = []
+        self._array = array;
+        self._values = []
 
     def addInput(input):
-        assert self.values.size() == 0 or input.size() == self.values[0].size(), "Added input of different sizes"
-        self.values.append(input)
+        assert len(self._values) == 0 or len(input) == len(self._values[0]), "Added input of different sizes"
+        self._values.append(input)
         #Inserts the vector into the array
-        self.array.append(input.getVector())
+        self._array.append(input.getVector())
 
     def getArray(self):
-        return self.array
+        return self._array
 
-    def transpose(self):
-        if self.array.size() == 0:
+    def getTranspose(self):
+        if len(self._array) == 0:
             return []
         array = self.getArray()
-        transpose = [[0] * self.array.size()] * self.array[0].size()
-        for i in range(array.size()):
-            for j in range(array[i].size()):
+        transpose = [[0 for x in range(len(self._array))] for x in range(len(self._array[0]))]
+        for i in range(len(array)):
+            for j in range(len(array[i])):
                 transpose[j][i] = array[i][j]
-        return transpose
+        return Matrix(transpose)
 
-    def invert(self):
-        return
+    def getInverse(self): #Using the Adjoint method
+        det = self.getDeterminant()
+        assert det != 0, "Finding the determinant of a non-invertible matrix!"
+        return self.getCofactorMatrix().getTranspose().scalarMultiply(1 / det)
 
-    def getCofactorMarrix(self):
-        if self.array.size() == 0:
+    def getCofactorMatrix(self):
+        if len(self._array) == 0:
             return Matrix()
-        cof = [[0] * self.array[0].size()] * self.array.size()
-        for i in range(self.array.size()):
-            for j in range(self.array[i].size()):
-                cof[i][j] = getCofactor(self.array, i, j)
-        return cof
+        cof = [[0 for x in range(len(self._array[0]))] for x in range(len(self._array))]
+        for i in range(len(self._array)):
+            for j in range(len(self._array[i])):
+                cof[i][j] = Matrix.getCofactor(self._array, i, j)
+        return Matrix(cof)
 
-    def determinant(self):
-        assert self.array.size() > 0, "Attempt to find determinant of an Empty Matrix"
-        assert self.array.size() == self.array[0].size(), "Not an n x n Matrix"
-        if self.array.size() == 1:
-            return self.array[0][0]
+    def getDeterminant(self):
+        assert len(self._array) > 0, "Attempt to find determinant of an Empty Matrix"
+        assert len(self._array) == len(self._array[0]), "Not an n x n Matrix"
+
+        if len(self._array) == 2: #Base Case: 2x2 matrix
+            det = self._array[0][0] * self._array[1][1] - self._array[0][1] * self._array[1][0]
+            return det
 
         det = 0
         i = 0; #Expand along the first row
-        for j in range (self.array.size()):
-            cofactor = getCofactor(self.array, i, j)
-            det += (-1 * ((i + j) % 2)) * self.array[i][j] * cofactor
+        for j in range (len(self._array)):
+            if self._array[i][j] != 0:
+                cofactor = Matrix.getCofactor(self._array, i, j)
+                det += ((-1) ** (i + j)) * self._array[i][j] * cofactor
         return det
 
-    def getCofactor(self, array, i, j):
-        assert array.size() > 0, "getMinor on an empty array"
-        assert i < array.size() and i >= 0, "getMinor row is out of range"
-        assert j < array[0].size() and j >= 0, "getMinor column out of range"
+    @staticmethod
+    def getCofactor(array, i, j):
+        assert len(array) > 0, "getMinor on an empty array"
+        assert i < len(array) and i >= 0, "getMinor row is out of range"
+        assert j < len(array[0]) and j >= 0, "getMinor column out of range"
+        #Gets the minor matrix
         minor = copy.deepcopy(array)
-        minor.pop(i)
-        for row in range(minor.size()):
+        minor.pop(i) #Deletes row
+        for row in minor: #Deletes column
             row.pop(j)
         minorMatrix = Matrix(minor)
-        cofactor = minorMatrix.determinant()
+        #Cofactor is the minor matrix's determinant
+        cofactor = minorMatrix.getDeterminant()
         return cofactor
+
+    def scalarMultiply(self, multiple):
+        for row in self._array:
+            for i in range(len(row)):
+                row[i] *= multiple
+
+    def getDataPoints(self):
+        return self._values
+
+    def getArray(self):
+        return self._array
 
 class DataPoint:
     def __init__(self, map):
-        self.map = map
+        self._map = map
 
     def getValue(self, name):
-        return self.map[name]
+        return self._map[name]
 
     def getVector(self):
-        return self.map.values()
+        return self._map.values()
 
 
 
 def linearRegression():
     return
+
+"""
+UNIT TESTING
+"""
+def assertAttribute(name, attributeName, expectedVal, actualVal):
+    assert actualVal == expectedVal, "Wrong output with test " + name + " - " + \
+        attributeName + " = " + str(actualVal) + " instead of " + str(expectedVal)
+
+def testMatrix(name, array, determinant, transpose, cofactor, inverse):
+    matrix = Matrix(array)
+    determinantTest = matrix.getDeterminant()
+    transposeTest = matrix.getTranspose().getArray()
+    cofactorTest = matrix.getCofactorMatrix().getArray()
+    #inverseTest = matrix.getInverse().getArray()
+
+    assertAttribute(name, "transpose", transpose, transposeTest)
+    assertAttribute(name, "determinant", determinant, determinantTest)
+    assertAttribute(name, "cofactor", cofactor, cofactorTest)
+    #assertAttribute(name, "inverse", inverse, inverseTest)
+
+def unitTestMatrix(): #Unit tests the Matrix class
+    tests = []
+    #----DEFINES THE TEST CASES------
+    #TEST CASE 1
+    test1 = []
+    test1.append("Test 1") #name
+    test1.append([ #array
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]
+    ])
+    test1.append(1) #determinant
+    test1.append([ #transpose
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]
+    ])
+    test1.append([ #cofactor
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]
+    ])
+    test1.append([ #inverse
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]
+    ])
+    tests.append(test1)
+
+    #------RUN TEST CASES----------
+    for test in tests:
+        testMatrix(test[0], test[1], test[2], test[3], test[4], test[5])
+
+
+"""
+ACTUAL MACHINE LEARNING CODE
+"""
+#Start with the unit tests
+unitTestMatrix()
+print "Passed all Matrix unit tests"
