@@ -36,7 +36,9 @@ class Matrix:
     def getInverse(self): #Using the Adjoint method
         det = self.getDeterminant()
         assert det != 0, "Finding the determinant of a non-invertible matrix!"
-        return self.getCofactorMatrix().getTranspose().scalarMultiply(1 / det)
+        adjunct = self.getCofactorMatrix().getTranspose()
+        adjunct.scalarMultiply(1.0 / det)
+        return adjunct
 
     def getCofactorMatrix(self):
         if len(self._array) == 0:
@@ -60,7 +62,7 @@ class Matrix:
         for j in range (len(self._array)):
             if self._array[i][j] != 0:
                 cofactor = Matrix.getCofactor(self._array, i, j)
-                det += ((-1) ** (i + j)) * self._array[i][j] * cofactor
+                det += self._array[i][j] * cofactor
         return det
 
     @staticmethod
@@ -74,8 +76,9 @@ class Matrix:
         for row in minor: #Deletes column
             row.pop(j)
         minorMatrix = Matrix(minor)
+        sign = (-1) ** (i + j)
         #Cofactor is the minor matrix's determinant
-        cofactor = minorMatrix.getDeterminant()
+        cofactor = sign * minorMatrix.getDeterminant()
         return cofactor
 
     def scalarMultiply(self, multiple):
@@ -116,41 +119,63 @@ def testMatrix(name, array, determinant, transpose, cofactor, inverse):
     determinantTest = matrix.getDeterminant()
     transposeTest = matrix.getTranspose().getArray()
     cofactorTest = matrix.getCofactorMatrix().getArray()
-    #inverseTest = matrix.getInverse().getArray()
+    inverseTest = matrix.getInverse().getArray()
 
     assertAttribute(name, "transpose", transpose, transposeTest)
     assertAttribute(name, "determinant", determinant, determinantTest)
     assertAttribute(name, "cofactor", cofactor, cofactorTest)
-    #assertAttribute(name, "inverse", inverse, inverseTest)
+    assertAttribute(name, "inverse", inverse, inverseTest)
 
 def unitTestMatrix(): #Unit tests the Matrix class
     tests = []
     #----DEFINES THE TEST CASES------
     #TEST CASE 1
-    test1 = []
-    test1.append("Test 1") #name
-    test1.append([ #array
-        [1, 0, 0],
+    tests.append([
+        #name
+        "Test 1",
+        #array
+        [[1, 0, 0],
         [0, 1, 0],
-        [0, 0, 1]
-    ])
-    test1.append(1) #determinant
-    test1.append([ #transpose
-        [1, 0, 0],
+        [0, 0, 1]],
+        #determinant
+        1,
+        #transpose
+        [[1, 0, 0],
         [0, 1, 0],
-        [0, 0, 1]
-    ])
-    test1.append([ #cofactor
-        [1, 0, 0],
+        [0, 0, 1]],
+        #cofactor
+        [[1, 0, 0],
         [0, 1, 0],
-        [0, 0, 1]
-    ])
-    test1.append([ #inverse
-        [1, 0, 0],
+        [0, 0, 1]],
+        #inverse
+        [[1, 0, 0],
         [0, 1, 0],
-        [0, 0, 1]
+        [0, 0, 1]]
     ])
-    tests.append(test1)
+
+    #TEST CASE 2
+    tests.append([
+        #name
+        "Test 2",
+        #array
+        [[3, 2, 3],
+        [4, 5, 6],
+        [7, 8, 10]],
+        #determinant
+        1,
+        #transpose
+        [[3, 4, 7],
+        [2, 5, 8],
+        [3, 6, 10]],
+        #cofactor
+        [[2, 2, -3],
+        [4, 9, -10],
+        [-3, -6, 7]],
+        #inverse
+        [[2, 4, -3],
+        [2, 9, -6],
+        [-3, -10, 7]]
+    ])
 
     #------RUN TEST CASES----------
     for test in tests:
