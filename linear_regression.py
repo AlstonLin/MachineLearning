@@ -7,16 +7,13 @@ DATA STRUCTURES
 
 class Matrix:
     def __init__(self):
-        self._values = []
         self._array = []
 
     def __init__(self, array): #Should only be used to calculate determinants
         self._array = array;
-        self._values = []
 
     def addInput(input):
-        assert len(self._values) == 0 or len(input) == len(self._values[0]), "Added input of different sizes"
-        self._values.append(input)
+        assert len(self._array) == 0 or len(input) == len(self._array[0]), "Added input of different sizes"
         #Inserts the vector into the array
         self._array.append(input.getVector())
 
@@ -86,24 +83,73 @@ class Matrix:
             for i in range(len(row)):
                 row[i] *= multiple
 
-    def getDataPoints(self):
-        return self._values
+    @staticmethod
+    def multiply(a, b):
+        assert len(a._array) > 0 and len(b._array) > 0, "Cannot multiply empty matrices"
+        assert len(a._array) == len(b._array) and len(a._array[0]) == len(b._array[0]), "Cannot multiply matrices of different size"
+        product = []
+        rowsA = a.getRowVectors()
+        columnsB = b.getColumnVectors()
+        for row in rowsA:
+            productRow = []
+            for column in columnsB:
+                dot = Vector.dotProduct(row, column)
+                print "Dot Product of ", row._array, " and ", column._array, " = ", dot
+                productRow.append(dot)
+            product.append(productRow)
+        return product
+
+    def predict(self, input):
+        return DataPoint([])
 
     def getArray(self):
-        return self._array
+        return copy.deepcopy(self._array)
+
+    def getColumnVectors(self):
+        if len(self._array) == 0:
+            return
+        columns = [[] for x in range(len(self._array[0]))]
+
+        for row in self._array:
+            for i in range(len(self._array)):
+                columns[i].append(row[i])
+        columnVectors = []
+        for column in columns:
+            columnVectors.append(Vector(column))
+        return columnVectors
+
+    def getRowVectors(self):
+        rowVectors = []
+        for row in self._array:
+            rowVectors.append(Vector(copy.deepcopy(row)))
+        return rowVectors
 
 class DataPoint:
     def __init__(self, map):
         self._map = map
+        self._vector = map.values()
 
     def getValue(self, name):
         return self._map[name]
 
     def getVector(self):
-        return self._map.values()
+        return self._vector
 
+class Vector:
+    def __init__(self, array):
+        self._array = array
 
+    @staticmethod
+    def dotProduct(a, b):
+        assert len(a._array) == len(b._array), "Cannot dot vectors of different size"
+        product = 0
+        for i in range(len(a._array)):
+            product += a._array[i] * b._array[i]
+        return product
 
+"""
+MACHINE LEARNING ALGORITHM
+"""
 def linearRegression():
     return
 
@@ -114,17 +160,21 @@ def assertAttribute(name, attributeName, expectedVal, actualVal):
     assert actualVal == expectedVal, "Wrong output with test " + name + " - " + \
         attributeName + " = " + str(actualVal) + " instead of " + str(expectedVal)
 
-def testMatrix(name, array, determinant, transpose, cofactor, inverse):
+def testMatrix(name, array, determinant, transpose, cofactor, inverse, multiplyWith, product):
     matrix = Matrix(array)
+    multiplyMatrix = Matrix(multiplyWith)
+
     determinantTest = matrix.getDeterminant()
     transposeTest = matrix.getTranspose().getArray()
     cofactorTest = matrix.getCofactorMatrix().getArray()
     inverseTest = matrix.getInverse().getArray()
+    productTest = Matrix.multiply(matrix, multiplyMatrix)
 
     assertAttribute(name, "transpose", transpose, transposeTest)
     assertAttribute(name, "determinant", determinant, determinantTest)
     assertAttribute(name, "cofactor", cofactor, cofactorTest)
     assertAttribute(name, "inverse", inverse, inverseTest)
+    assertAttribute(name, "product", product, productTest)
 
 def unitTestMatrix(): #Unit tests the Matrix class
     tests = []
@@ -148,6 +198,14 @@ def unitTestMatrix(): #Unit tests the Matrix class
         [0, 1, 0],
         [0, 0, 1]],
         #inverse
+        [[1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]],
+        #multiplyWith
+        [[1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]],
+        #product
         [[1, 0, 0],
         [0, 1, 0],
         [0, 0, 1]]
@@ -174,16 +232,24 @@ def unitTestMatrix(): #Unit tests the Matrix class
         #inverse
         [[2, 4, -3],
         [2, 9, -6],
-        [-3, -10, 7]]
+        [-3, -10, 7]],
+        #multiplyWith,
+        [[24, 24, 24],
+        [3, 3, 3],
+        [2, 4, 6]],
+        #product
+        [[18, 24, 30],
+        [35, 47, 59],
+        [58, 78, 98]]
     ])
 
     #------RUN TEST CASES----------
     for test in tests:
-        testMatrix(test[0], test[1], test[2], test[3], test[4], test[5])
+        testMatrix(test[0], test[1], test[2], test[3], test[4], test[5], test[6], test[7])
 
 
 """
-ACTUAL MACHINE LEARNING CODE
+EXECUTABLE CODE
 """
 #Start with the unit tests
 unitTestMatrix()
