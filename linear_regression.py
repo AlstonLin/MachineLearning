@@ -1,5 +1,5 @@
 
-import copy
+import copy, random
 
 """
 DATA STRUCTURES
@@ -269,27 +269,87 @@ def unitTestMatrix(): #Unit tests the Matrix class
         testMatrix(test[0], test[1], test[2], test[3], test[4], test[5], test[6], test[7])
 
 
+def testRegression(name, data, results, startPredict): #startPredict - index to start predict instead of train
+    regression = LinearRegression(len(data[0]))
+    maxError = 0
+    for i in range (startPredict):
+        regression.train(data[i], results[i])
+    for i in range (startPredict, len(data)):
+        result = regression.predict(data[i])
+        if results[i] != 0:
+            error = abs((result - results[i]) / results[i])
+        else:
+            error = abs(result)
+        if error > maxError:
+            maxError = error
+    print name, "(", startPredict, " trained / ", len(data) - startPredict, " predict) -  maxError = ", round(maxError, 5), "%"
+
+def generateTestCase(numCases, numVars, lowest, largest, maxDeviation, func):
+    data = []
+    results = []
+    for i in range (0, numCases):
+        params = []
+        #Generates input and output
+        for j in range (0, numVars):
+            params.append(random.randint(lowest, largest))
+        results.append(func(params))
+        #Adds randomness
+        for j in range (0, numVars):
+            params[j] += (2 * random.random() - 1) * maxDeviation
+        data.append(params)
+    return data, results
+
+def unitTestRegresion(): #Will use last 2 to Prediction
+    tests = []
+    #TEST CASE 1 - f(x1, x2, x3, x4, x5) = 3(x1 + x2 + x3 + x4 + x5) - 3
+    data1, results1 = generateTestCase(100, 5, -10, 10, 0.01, lambda params: 3 * (params[0] + params[1]
+        + params[2] + params[3] + params[4]) - 3)
+    tests.append([
+        #name
+        "TEST CASE f(x1,x2,x3,x4,x5) = 3(x1 + x2 + x3 + x4 + x5) - 3 : ",
+        #data
+        data1,
+        #results
+        results1,
+        #startPredict
+        85
+    ])
+    #TEST CASE 2 - f(x, y, z) = x + y + z - 1
+    data2, results2 = generateTestCase(1000, 5, -15, 15, 0.001, lambda params: params[0] + params[1]
+        + params[2] - 1)
+    tests.append([
+        #name
+        "TEST CASE f(x,y,z) = x + y + z - 1 : ",
+        #data
+        data2,
+        #results
+        results2,
+        #startPredict
+        750
+    ])
+    #TEST CASE 3 - f(x1, x2, x3, x4, x5, x6. x7) = x1 - x2 + 5x3 - 1.5x4 - 99x5 + 0.1x6 -0.0019x7 - 6
+    data2, results2 = generateTestCase(10000, 7, -50, 50, 0.001, lambda params: params[0] - params[1]
+        + 5*params[2] - 1.5*params[3] - 99*params[4] + 0.1*params[5] - 0.0019* params[6] - 6)
+    tests.append([
+        #name
+        "TEST CASE f(x1, x2, x3, x4, x5, x6. x7) = x1 - x2 + 5x3 - 1.5x4 - 99x5 + 0.1x6 - 0.0019x7 - 6 : ",
+        #data
+        data2,
+        #results
+        results2,
+        #startPredict
+        9000
+    ])
+    for test in tests:
+        testRegression(test[0], test[1], test[2], test[3])
+
+def unitTest():
+    print "---------------UNIT TESTS------------------"
+    unitTestMatrix()
+    print "Passed all Matrix unit tests"
+    unitTestRegresion()
+
 """
 EXECUTABLE CODE
 """
-#Start with the unit tests
-unitTestMatrix()
-print "Passed all Matrix unit tests"
-
-#Sets up regression
-regression = LinearRegression(3)
-
-data1 = [0.01, 0.02, 0.0]
-data2 = [1.03, 1.01, 1.0]
-data3 = [2.04, 2.03, 2.0]
-data4 = [3.1, 3.09, 3.0]
-data5 = [4.03, 4.02, 4.0]
-
-regression.train(data1, 0.0)
-regression.train(data2, 1.0)
-regression.train(data3, 2.0)
-regression.train(data4, 3.0)
-
-result = regression.predict(data5)
-
-print "Prediction result: ", result
+unitTest()
