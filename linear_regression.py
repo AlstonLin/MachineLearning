@@ -155,16 +155,18 @@ MACHINE LEARNING ALGORITHM
 """
 class LinearRegression:
     def __init__(self, numParams):
-        self._matrix = Matrix(numParams)
+        self._matrix = Matrix(numParams + 1) #Accounting for the constant term
         self._targetValues = []
         self._paramsMatrix = None #Memoization
 
     def train(self, params, target):
+        params.append(1.0) #For the Constant term
         self._matrix.addInput(params)
         self._targetValues.append(target)
         self._paramsMatrix = None
 
     def predict(self, params):
+        params.append(1.0) #Constant term
         if self._paramsMatrix is None:
             self._paramsMatrix = self._matrix
             self._paramsMatrix = Matrix.multiply(self._paramsMatrix.getTranspose(), self._paramsMatrix)
@@ -269,7 +271,8 @@ def unitTestMatrix(): #Unit tests the Matrix class
         testMatrix(test[0], test[1], test[2], test[3], test[4], test[5], test[6], test[7])
 
 
-def testRegression(name, data, results, startPredict): #startPredict - index to start predict instead of train
+def testRegression(name, data, results, startPredict, errorTolerance): #startPredict - index to start predict instead of train
+    #errorTolerance - set to -1 if None and print error
     regression = LinearRegression(len(data[0]))
     maxError = 0
     for i in range (startPredict):
@@ -282,7 +285,11 @@ def testRegression(name, data, results, startPredict): #startPredict - index to 
             error = abs(result)
         if error > maxError:
             maxError = error
-    print name, "(", startPredict, " trained / ", len(data) - startPredict, " predict) -  maxError = ", round(maxError, 5), "%"
+    if errorTolerance == -1:
+        print name, "(", startPredict, " trained / ", len(data) - startPredict, " predict) -  maxError = ", round(maxError * 100, 5), "%"
+    else:
+        assert maxError < errorTolerance, "FAILED TEST CASE - " + name + " Max Error = " + str(maxError) + \
+            " with Error Tolerance = " + str(errorTolerance)
 
 def generateTestCase(numCases, numVars, lowest, largest, maxDeviation, func):
     data = []
@@ -312,7 +319,9 @@ def unitTestRegresion(): #Will use last 2 to Prediction
         #results
         results1,
         #startPredict
-        85
+        85,
+        #errorTolerance
+        0.05
     ])
     #TEST CASE 2 - f(x, y, z) = x + y + z - 1
     data2, results2 = generateTestCase(1000, 5, -15, 15, 0.001, lambda params: params[0] + params[1]
@@ -325,7 +334,9 @@ def unitTestRegresion(): #Will use last 2 to Prediction
         #results
         results2,
         #startPredict
-        750
+        750,
+        #errorTolerance
+        0.05
     ])
     #TEST CASE 3 - f(x1, x2, x3, x4, x5, x6. x7) = x1 - x2 + 5x3 - 1.5x4 - 99x5 + 0.1x6 -0.0019x7 - 6
     data2, results2 = generateTestCase(10000, 7, -50, 50, 0.001, lambda params: params[0] - params[1]
@@ -338,16 +349,19 @@ def unitTestRegresion(): #Will use last 2 to Prediction
         #results
         results2,
         #startPredict
-        9000
+        9000,
+        #errorTolerance
+        0.05
     ])
     for test in tests:
-        testRegression(test[0], test[1], test[2], test[3])
+        testRegression(test[0], test[1], test[2], test[3], test[4])
 
 def unitTest():
     print "---------------UNIT TESTS------------------"
     unitTestMatrix()
     print "Passed all Matrix unit tests"
     unitTestRegresion()
+    print "Passed all Regression unit tests"
 
 """
 EXECUTABLE CODE
