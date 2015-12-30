@@ -39,7 +39,7 @@ class Node:
     
   def calculate_derivative(self):
     self._derivative_vector = []
-    for inp in self._input_vector
+    for inp in self._input_vector:
       self._derivative_vector.append(self.delta * inp) #dE/dw = delta * z
 
   def gradient_descent(self):
