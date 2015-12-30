@@ -1,4 +1,3 @@
-import numpy as np
 import math
 import random
 
@@ -13,7 +12,7 @@ def dot(vector1, vector2):
   return product
 
 class Node:
-  LEARN_RATE = 1
+  LEARN_RATE = 0.1
   def __init__(self, num_input):
     self.numInput = num_input
     self._derivative_vector = [] #For gradient descent
@@ -34,7 +33,7 @@ class Node:
     self._input_vector = vector
     return self.output
 
-  def get_weight(index):
+  def get_weight(self, index):
     return self._param_vector[index]
     
   def calculate_derivative(self):
@@ -44,9 +43,10 @@ class Node:
 
   def gradient_descent(self):
     for i in range(len(self._param_vector)):
+      temp = self._param_vector[i]
       #Update Rule: weight = weight - a*(dE/dw)
-      self._param_vector[i] = self._param_vector[i] - LEARN_RATE * self._derivative_vector[i]
-
+      self._param_vector[i] = self._param_vector[i] - Node.LEARN_RATE * self._derivative_vector[i]
+      #print temp, " - ", Node.LEARN_RATE, " * ", self._derivative_vector[i], " = ", self._param_vector[i]
 class Layer:
   def __init__(self, num_nodes, num_input):
     self._nodes = []
@@ -60,17 +60,21 @@ class Layer:
       out.append(self._nodes[i].get_output(in_vector))
     return out
 
-  def calculate_delta(self, expected, actual):
+  def calculate_output_delta(self, expected, actual):
+    total = 0
     for i in range(self.num_nodes):
+      node = self._nodes[i]
       node.delta = actual[i] - expected[i]
+      total += abs(node.delta)
       node.calculate_derivative()
- 
+    return total  
+  
   def back_prop(self, next_layer):
-    next_delta = next_layer.delta
     for i in range(self.num_nodes):
       activation_derivative = self._nodes[i].output * (1 - self._nodes[i].output) #h'(a) = z(1 - z)
       total = 0 #For sum(w*delta)
       for j in range(next_layer.num_nodes):
+        next_delta = next_layer._nodes[j].delta
         total += next_layer._nodes[j].get_weight(i) * next_delta
         self._nodes[i].delta = activation_derivative * total #delta = h'(a) * sum(w*delta)
       self._nodes[i].calculate_derivative()
@@ -84,6 +88,7 @@ class Layer:
 NETWORK
 """
 class XORNetwork:
+  ERROR_TOLERANCE = 0.0001
   def __init__(self):
     #Input layer is not represented by a Layer Object; Just feed a Vector to the hidden layer
     self._hidden_layer = Layer(2, 2)
@@ -99,11 +104,10 @@ class XORNetwork:
   def train(self, in1, in2, out):
     #Determines output
     predicted = self.predict(in1, in2)
-    error = predicted - out
+    #Sets the delta vals for the output layer + derivative
+    error = self._output_layer.calculate_output_delta([out], [predicted])
     #Continue until practically converged
-    while error > ERROR_TOLERANCE: 
-      #Sets the delta vals for the output layer + derivative
-      self._output_layer.calculate_delta(0, predicted - out)
+    while error > XORNetwork.ERROR_TOLERANCE: 
       #Back prop
       self._hidden_layer.back_prop(self._output_layer)
       #Gradient Descent
@@ -111,10 +115,25 @@ class XORNetwork:
       self._hidden_layer.gradient_descent()
       #Recalculates the error
       predicted = self.predict(in1, in2)
-      error = predicted - out
+      error = self._output_layer.calculate_output_delta([out], [predicted])
+
+def train(network):
+  network.train(0, 0, 0)
+  network.train(0, 1, 1)
+  network.train(1, 0, 1)
+  network.train(1, 1, 0)
+
+def predict(network):
+  print "0 XOR 0 = ", network.predict(0, 0)
+  print "1 XOR 0 = ", network.predict(1, 0)
+  print "0 XOR 1 = ", network.predict(0, 1)
+  print "1 XOR 1 = ", network.predict(1, 1)
 
 network = XORNetwork()
-print(network.predict(0, 0))
-print(network.predict(0, 1))
-print(network.predict(1, 0))
-print(network.predict(1, 1))
+train(network)
+predict(network)
+
+
+
+
+
