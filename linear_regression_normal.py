@@ -1,3 +1,6 @@
+"""
+This algorithm implements linear regression using the Normal Equations. It also implements it's own linear algebra library (similar to numpy).
+"""
 
 import copy, random
 
