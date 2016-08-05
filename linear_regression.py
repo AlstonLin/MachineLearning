@@ -13,9 +13,8 @@ class LinearRegression:
     Calculates the cost using the current theta of this instance.
     
     Args:
-        X - A numpy m * n matrix that represents the input of the data set, where m is the number
-            of examples and n should be equal to self._numParams
-        y - A numpy vector of size m, where m is the number of examples
+        X - An m * n numpy matrix
+        y - A numpy vector of size m
     Returns:
         A floating point representing the cost
     """
@@ -29,9 +28,8 @@ class LinearRegression:
     Calculates the the gradient vector of the Cost function wrt the change in theta (dJ / dTheta).
 
     Args:
-        X - A numpy m * n matrix that represents the input of the data set, where m is the number
-            of examples and n should be equal to self._numParams
-        y - A numpy vector of size m, where m is the number of examples
+        X - An m * n numpy matrix
+        y - A numpy vector of size m
     Returns:
         A vector of size m representing the gradient vector
     """
@@ -39,18 +37,15 @@ class LinearRegression:
         self.validateXSize(X)
         m = X.shape[0]
         h = np.dot(X, self._theta)
-        grad = [0] * self._numParams
-        for i in range(self._numParams):
-            grad[i] = ((h - y) * X[:, i]).sum() / m
+        grad = np.dot(h - y, X)
         return grad
 
     """
     Trains the algorithm by running gradient descent.
 
     Args:
-        X - A numpy m * n matrix that represents the input of the data set, where m is the number
-            of examples and n should be equal to self._numParams
-        y - A numpy vector of size m, where m is the number of examples
+        X - An m * n numpy matrix
+        y - A numpy vector of size m
         alpha - The learning rate
         iter - The max number of iterations to run gradient descent
     """
@@ -64,7 +59,7 @@ class LinearRegression:
     Predicts a set of output values (y) for the given X.
 
     Args:
-        X - A numpy m * n matrix
+        X - An m * n numpy matrix
     Returns:
         A vector of size m representing all the predicted outputs
     """
