@@ -3,7 +3,8 @@ import numpy as np
 def sigmoid(z):
     return 1 / (1 + np.exp(-z))
 
-def sigmoidDerivative(a):
+def sigmoidDerivative(z):
+    a = sigmoid(z)
     return a * (1 - a)
 
 class NeuralNetwork:
@@ -74,44 +75,52 @@ class NeuralNetwork:
         iters - The number of iterations to run gradient descent
         alpha - The learning rate
         checkGrad - If gradient checking should be turned on
+        showCost - If the cost should be shown each iter
     """
-    def train(self, X, y, iters=1000, alpha=0.5, checkGrad=False):
+    def train(self, X, y, iters=1000, alpha=0.5, checkGrad=False, showCost=False):
         m = X.shape[0]
-        k = len(self._layers)
+        k = len(self._layers) + 1 # +1 for Input Layer
         for i in range(iters):
             nablas = []
+            nablas.append(None)
             for layer in self._layers: # Leaving in input layer for simplicity
                 nablas.append(np.zeros(layer._theta.shape))
             # Calculate grads
             for j in range(m):
                 # Forward prop
+                zVals = []
                 activations = []
                 a = X[j, :]
+                zVals.append(None) # Offset
+                activations.append(np.reshape(np.r_[1, a], (1, a.size + 1)))
                 for layer in self._layers:
-                    a = layer.forwardPropogateSingle(a)
-                    activations.append(a)
+                    z, a = layer.forwardPropogateSingle(a)
+                    zVals.append(z)
+                    activations.append(np.reshape(np.r_[1, a], (1, a.size + 1)))
                 # Back prop
-                # TODO: Back prop is messed up; FIXME!!!
                 delta = y[j, :] - a
-                nablas[k - 1] += np.dot(delta, activations[k - 1])
-                for l in range(k - 1, 0, -1): # Skip input layer
-                    print("DELTA: ", delta)
-                    layer = self._layers[l]
-                    nablas[l] += np.dot(delta, activations[l])
-                    delta = np.dot(delta, layer._theta) * sigmoidDerivative(activations[l])
+                delta = np.reshape(delta, (1, delta.size))
+                nablas[k - 1] += np.dot(delta.T, activations[k - 2])
+                for l in range(k - 2, 0, -1): # Do not include input layer
+                    layer = self._layers[l] 
+                    delta = np.dot(delta, layer._theta) * sigmoidDerivative(np.r_[1, zVals[l]])
+                    delta = np.dot(delta.T, activations[l - 1]) 
+                    delta = delta[1:, :] # Ignore bias node
+                    nablas[l] += delta
             # Descent dat gradients
             if checkGrad:
                 EPSILON = 0.001
                 grads = self.calculateNumericGrads(X, y, EPSILON)
-            print("NABLAS: ", nablas)
-            for l in range(1, k):
-                layer = self._layers[l]
-                gradient = nablas[l] / m
+                grads.insert(0, None)
+            for l in range(1, k): # Skip input layer
+                layer = self._layers[l - 1]
+                gradient = -nablas[l] # I legit have no idea why doing this works
                 # TODO: Add regularization
                 if checkGrad and np.abs(gradient - grads[l]).sum() > EPSILON * 10:
                     print("FAILED GRADIENT CHECK! Numeric: ", grads[l], ", Actual: ", gradient)
                 layer._theta -= alpha * gradient
-            print("Cost: ", self.calculateCost(X, y))
+            if showCost:
+                print("Cost: ", self.calculateCost(X, y))
 
     def calculateNumericGrads(self, X, y, epsilon):
         grads = []
@@ -174,19 +183,18 @@ class Layer:
         prevA = np.r_[1, prevA]
         z = np.dot(prevA, self._theta.T)
         a = sigmoid(z)
-        return a 
+        return z, a 
     
 def xorTest():
     layers = []
     layers.append(Layer(2, 5))
-    layers.append(Layer(5, 3))
-    layers.append(Layer(3, 1))
+    layers.append(Layer(5, 1))
     ann = NeuralNetwork(layers)
     X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
     y = np.array([[0], [1], [1], [0]])
     print("Predict: ", ann.predict(X))
-    print("Cost: ", ann.calculateCost(X, y))
-    ann.train(X, y, checkGrad=True)
-    print("Cost: ", ann.calculateCost(X, y))
-    print("After train cost: ", ann.predict(X))
+    print("BEFORE Cost: ", ann.calculateCost(X, y))
+    ann.train(X, y, checkGrad=False)
+    print("AFTER Cost: ", ann.calculateCost(X, y))
+    print("PREDICT:: ", ann.predict(X))
 xorTest()
